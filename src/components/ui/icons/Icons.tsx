@@ -1291,3 +1291,9 @@ export const SadIcon = () => (
     </g>
   </svg>
 );
+
+export const LogoutIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24">
+    <path d="M16 17v-3H9v-4h7V7l5 5-5 5M14 2H4a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4h-2v4H4V4h10v4h2V4a2 2 0 0 0-2-2z" />
+  </svg>
+);

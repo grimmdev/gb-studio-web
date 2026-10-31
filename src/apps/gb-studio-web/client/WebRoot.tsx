@@ -31,6 +31,9 @@ import { initMusicMidiProjectBridge } from "components/music/midi/MusicMidiProje
 import { initProjectWeb } from "./initProjectWeb";
 import { WebPlayModal } from "./components/WebPlayModal";
 import { ProjectPickerModal } from "./components/ProjectPickerModal";
+import { AuthModal } from "./components/AuthModal";
+import { AdminModal } from "./components/AdminModal";
+import { UserMenu } from "./components/UserMenu";
 
 initMusicMidiProjectBridge(store);
 initMusicPlaybackListener(store.dispatch);
@@ -41,7 +44,6 @@ initMusicPlaybackListener(store.dispatch);
     await initTheme();
     await initFullScreenDetector();
     initMouseTracking();
-    await initProjectWeb();
 
     const rootEl = document.getElementById("App") as HTMLElement;
     if (rootEl) {
@@ -56,6 +58,9 @@ initMusicPlaybackListener(store.dispatch);
                   <App />
                   <WebPlayModal />
                   <ProjectPickerModal />
+                  <AuthModal />
+                  <AdminModal />
+                  <UserMenu />
                 </>
               </AppContainerDnD>
             </ThemeProvider>
@@ -63,6 +68,9 @@ initMusicPlaybackListener(store.dispatch);
         </React.StrictMode>,
       );
     }
+
+    // Bootstrap project state once root providers and modals are mounted.
+    await initProjectWeb();
   } catch (err) {
     console.error("Failed to bootstrap GB Studio Web:", err);
   }

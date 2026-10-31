@@ -61,7 +61,11 @@ const loadImage = (src: string): Promise<ImageBitmap | undefined> => {
       return response.blob();
     })
     .then(createImageBitmap)
-    .catch(() => undefined);
+    .catch(() => {
+      // Purge failed load attempts to enable retry upon tab recovery.
+      imageCache.delete(src);
+      return undefined;
+    });
   imageCache.set(src, image);
   return image;
 };

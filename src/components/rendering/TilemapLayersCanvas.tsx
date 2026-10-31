@@ -14,6 +14,7 @@ import type {
   TilemapLayersWorkerTileset,
 } from "./TilemapLayersCanvas.worker";
 import { scheduleFlattenTilemap } from "./tilemapLayersScheduler";
+import { useCanvasRestoration } from "./useCanvasRestoration";
 import {
   createTilemapLayersWorkerHandle,
   TilemapLayersWorkerHandle,
@@ -68,6 +69,7 @@ const TilemapLayersCanvas = memo(
     priority,
   }: TilemapLayersCanvasProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const renderEpoch = useCanvasRestoration(canvasRef);
 
     const canvasId = useRef(`${Date.now()}-${Math.random()}`);
     const nextRequestSequence = useRef(0);
@@ -178,6 +180,7 @@ const TilemapLayersCanvas = memo(
       width,
       workerHandle,
       workerTilesets,
+      renderEpoch,
     ]);
 
     return (

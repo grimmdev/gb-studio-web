@@ -40,6 +40,7 @@ workerCtx.onmessage = async (evt) => {
   let tilesCtx: OffscreenCanvasRenderingContext2D | undefined;
   let tilesImg: ImageBitmap | undefined;
 
+  try {
   if (cache[src]) {
     // Using Cached Data
     canvas = cache[src].canvas;
@@ -47,7 +48,7 @@ workerCtx.onmessage = async (evt) => {
     img = cache[src].img;
   } else {
     // Fetch New Data
-    const imgblob = await fetch(src).then((r) => r.blob());
+    const imgblob = await fetch(src, { credentials: "include" }).then((r) => r.blob());
     img = await createImageBitmap(imgblob);
 
     canvas = new OffscreenCanvas(img.width, img.height);
@@ -74,7 +75,7 @@ workerCtx.onmessage = async (evt) => {
       tilesImg = cache[tilesSrc].img;
     } else {
       // Fetch New Data
-      const imgblob = await fetch(tilesSrc).then((r) => r.blob());
+      const imgblob = await fetch(tilesSrc, { credentials: "include" }).then((r) => r.blob());
       tilesImg = await createImageBitmap(imgblob);
 
       tilesCanvas = new OffscreenCanvas(img.width, img.height);
@@ -91,6 +92,14 @@ workerCtx.onmessage = async (evt) => {
         img: tilesImg,
       };
     }
+  }
+  } catch (err) {
+    // Clear cached entries if loading failed so retries can succeed.
+    delete cache[src];
+    if (tilesSrc) {
+      delete cache[tilesSrc];
+    }
+    return;
   }
 
   const width = img.width;

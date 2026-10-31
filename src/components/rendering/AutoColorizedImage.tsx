@@ -3,9 +3,11 @@ import type { AutoColorizedImageResult } from "./AutoColorizedImage.worker";
 import { getSettings } from "store/features/settings/settingsState";
 import { useAppSelector } from "store/hooks";
 import { MonoBGPPalette, Palette } from "shared/lib/resources/types";
+import { useCanvasRestoration } from "./useCanvasRestoration";
 
 const workerPool: Worker[] = [];
-for (let i = 0; i < navigator.hardwareConcurrency; i++) {
+const poolSize = Math.max(1, navigator?.hardwareConcurrency || 4);
+for (let i = 0; i < poolSize; i++) {
   workerPool.push(
     new Worker(new URL("./AutoColorizedImage.worker.ts", import.meta.url)),
   );
@@ -35,6 +37,7 @@ const AutoColorizedImage = ({
   );
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const renderEpoch = useCanvasRestoration(canvasRef);
   const workerId = useRef(Math.random());
   const worker = useRef(
     workerPool[Math.floor(workerPool.length * Math.random())],
@@ -43,18 +46,11 @@ const AutoColorizedImage = ({
   const onWorkerComplete = useCallback(
     (e: MessageEvent<AutoColorizedImageResult>) => {
       if (e.data.id === workerId.current) {
-        const offscreenCanvas = document.createElement("canvas");
-        const offscreenCtx = offscreenCanvas.getContext("bitmaprenderer");
-        if (!canvasRef.current || !offscreenCtx) {
-          return;
-        }
-        const ctx = canvasRef.current.getContext("2d");
-        if (!ctx) {
-          return;
-        }
-        offscreenCtx.transferFromImageBitmap(e.data.canvasImage);
+        const ctx = canvasRef.current?.getContext("2d");
+        if (!ctx) return;
         ctx.clearRect(0, 0, width, height);
-        ctx.drawImage(offscreenCanvas, 0, 0);
+        ctx.drawImage(e.data.canvasImage, 0, 0);
+        e.data.canvasImage.close?.();
       }
     },
     [height, width],
@@ -91,6 +87,7 @@ const AutoColorizedImage = ({
     monoBGP,
     colorCorrection,
     uiPalette,
+    renderEpoch,
   ]);
 
   return <canvas ref={canvasRef} width={width} height={height} />;

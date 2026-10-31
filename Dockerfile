@@ -56,15 +56,16 @@ COPY --from=builder /app/README.md ./README.md
 # Ensure execute permissions on GBDK compiler tools
 RUN chmod -R +x ./buildTools
 
-# Create volume for persistent project storage
-RUN mkdir -p /data/projects
+# Create volume for persistent project storage and database
+RUN mkdir -p /data/projects /data/db
 ENV PROJECTS_DIR=/data/projects
+ENV DB_PATH=/data/db/gbstudio.sqlite
 ENV PORT=3000
 ENV HOST=0.0.0.0
 ENV NODE_ENV=production
 
 EXPOSE 3000
 
-VOLUME ["/data/projects"]
+VOLUME ["/data/projects", "/data/db"]
 
 CMD ["node", "out/web/server.js"]

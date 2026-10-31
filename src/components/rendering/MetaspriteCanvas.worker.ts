@@ -45,12 +45,13 @@ workerCtx.onmessage = async (evt) => {
   let tilesCanvas: OffscreenCanvas;
   let tilesCanvases: Record<ObjPalette | number, OffscreenCanvas>;
 
-  if (cache[key]) {
+  try {
+    if (cache[key]) {
     // Using Cached Data
     img = cache[key].img;
     tilesCanvases = cache[key].tilesCanvases;
   } else {
-    const imgblob = await fetch(src).then((r) => r.blob());
+    const imgblob = await fetch(src, { credentials: "include" }).then((r) => r.blob());
     img = await createImageBitmap(imgblob);
     tilesCanvas = new OffscreenCanvas(img.width, img.height);
     const tilesCanvasCtx = tilesCanvas.getContext("2d");
@@ -120,6 +121,11 @@ workerCtx.onmessage = async (evt) => {
       img,
       tilesCanvases,
     };
+    }
+  } catch (err) {
+    // Clear faulty cache entries so background recovery requests can retry cleanly.
+    delete cache[key];
+    return;
   }
 
   // Fetch New Data

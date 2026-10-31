@@ -3,6 +3,7 @@ import Path from "path";
 import fs from "fs-extra";
 import express from "express";
 import { apiRouter } from "./routes";
+import { authMiddleware } from "./auth";
 import { initWebSocketServer } from "./ws";
 import { setOpenProject } from "./state";
 import { startWatchingProject } from "./watcher";
@@ -51,6 +52,9 @@ app.use((_req, res, next) => {
 // JSON body parsing with large limit for game project payloads
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
+// Attach session authentication middleware.
+app.use(authMiddleware);
 
 // Mount API routes under /api
 app.use("/api", apiRouter);

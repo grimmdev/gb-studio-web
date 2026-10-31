@@ -56,9 +56,17 @@ workerCtx.onmessage = async (evt) => {
     ctx = cache[src].ctx;
     img = cache[src].img;
   } else {
-    // Fetch New Data
-    const imgblob = await fetch(src).then((r) => r.blob());
-    img = await createImageBitmap(imgblob);
+    // Fetch and decode image data safely, ensuring failures do not poison the cache.
+    try {
+      const imgblob = await fetch(src, { credentials: "include" }).then((r) => {
+        if (!r.ok) throw new Error(`Failed to fetch asset: ${r.statusText}`);
+        return r.blob();
+      });
+      img = await createImageBitmap(imgblob);
+    } catch (_e) {
+      delete cache[src];
+      return;
+    }
 
     canvas = new OffscreenCanvas(img.width, img.height);
 

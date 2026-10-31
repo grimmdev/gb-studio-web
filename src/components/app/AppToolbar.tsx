@@ -13,6 +13,7 @@ import navigationActions from "store/features/navigation/navigationActions";
 import electronActions from "store/features/electron/electronActions";
 import debuggerActions from "store/features/debugger/debuggerActions";
 import settingsActions from "store/features/settings/settingsActions";
+import projectActions from "store/features/project/projectActions";
 import buildGameActions, {
   BuildType,
 } from "store/features/buildGame/buildGameActions";
@@ -33,8 +34,11 @@ import {
   DotsIcon,
   ExportIcon,
   FolderIcon,
+  LogoutIcon,
   LoadingIcon,
+  PersonIcon,
   PlayIcon,
+  SaveIcon,
 } from "ui/icons/Icons";
 import type { NavigationSection } from "store/features/navigation/navigationState";
 import {
@@ -59,13 +63,17 @@ const sectionAccelerators = {
   settings: "CommandOrControl+8",
 };
 
-const zoomSections = ["world", "sprites", "backgrounds", "ui"];
+const zoomSections = ["world", "sprites", "images", "backgrounds", "ui"];
 
 const AppToolbar: FC = () => {
   const dispatch = useAppDispatch();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const loaded = useAppSelector((state) => state.document.loaded);
   const modified = useAppSelector((state) => state.document.modified);
+  const trackerModified = useAppSelector(
+    (state) => state.tracker?.modified ?? false,
+  );
+  const hasUnsavedChanges = modified || trackerModified;
   const saving = useAppSelector((state) => state.document.saving);
   const saveStep = useAppSelector((state) => state.document.saveStep);
   const saveError = useAppSelector((state) => state.document.saveError);
@@ -114,6 +122,15 @@ const AppToolbar: FC = () => {
   const onRun = useCallback(() => {
     dispatch(buildGameActions.buildGame({ buildType: "web" }));
   }, [dispatch]);
+
+  const onSave = useCallback(() => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    if (!saving) {
+      dispatch(projectActions.saveProject());
+    }
+  }, [dispatch, saving]);
 
   const onBuild = useCallback(
     (buildType: BuildType) => () => {
@@ -168,6 +185,24 @@ const AppToolbar: FC = () => {
       setSearchTerm("");
     }
   }, [initalSearchTerm]);
+
+  const onOpenAdmin = useCallback(() => {
+    window.dispatchEvent(new CustomEvent("web:admin-panel"));
+  }, []);
+
+  const onLogout = useCallback(async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (_e) {
+      // Ignore network errors
+    }
+    try {
+      localStorage.removeItem("gbs_token");
+    } catch (_e) {
+      // Ignore storage errors
+    }
+    window.location.reload();
+  }, []);
 
   const openProjectFolder = useCallback(() => {
     dispatch(electronActions.openFolder("/"));
@@ -281,6 +316,34 @@ const AppToolbar: FC = () => {
             onChange={onChangeSearchTerm}
           />
         )}
+        {API.platform === "web" && (
+          <>
+            <Button
+              title="Manage Users"
+              onClick={onOpenAdmin}
+            >
+              <PersonIcon />
+            </Button>
+            <Button
+              title={l10n("NAV_LOG_OUT")}
+              onClick={onLogout}
+            >
+              <LogoutIcon />
+            </Button>
+          </>
+        )}
+        <Button
+          title={
+            saving
+              ? l10n("TOOLBAR_SAVING")
+              : `${l10n("MENU_SAVE")} (Ctrl+S)`
+          }
+          variant={hasUnsavedChanges ? "primary" : "normal"}
+          disabled={saving || !hasUnsavedChanges}
+          onClick={onSave}
+        >
+          {saving ? <LoadingIcon /> : <SaveIcon />}
+        </Button>
         <Button
           title={l10n("TOOLBAR_OPEN_PROJECT_FOLDER")}
           onClick={openProjectFolder}

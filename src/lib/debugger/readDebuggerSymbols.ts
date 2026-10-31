@@ -1,4 +1,5 @@
-import { readFile } from "fs-extra";
+import fs from "fs-extra";
+const { readFile } = fs;
 
 export const readDebuggerSymbols = async (
   outputRoot: string,

@@ -8,6 +8,7 @@ import {
 } from "store/features/entities/entitiesSelectors";
 import type { MetaspriteCanvasResult } from "./MetaspriteCanvas.worker";
 import { assetURL } from "shared/lib/helpers/assets";
+import { useCanvasRestoration } from "./useCanvasRestoration";
 import { getSettings } from "store/features/settings/settingsState";
 import {
   MetaspriteTile,
@@ -46,6 +47,7 @@ export const MetaspriteCanvas = memo(
       [string, string, string, string][] | null
     >(null);
     const canvasRef = React.useRef<HTMLCanvasElement>(null);
+    const renderEpoch = useCanvasRestoration(canvasRef);
     const spriteSheet = useAppSelector((state) =>
       spriteSheetSelectors.selectById(state, spriteSheetId),
     );
@@ -79,18 +81,11 @@ export const MetaspriteCanvas = memo(
     const onWorkerComplete = useCallback(
       (e: MessageEvent<MetaspriteCanvasResult>) => {
         if (e.data.id === workerId) {
-          const offscreenCanvas = document.createElement("canvas");
-          const offscreenCtx = offscreenCanvas.getContext("bitmaprenderer");
-          if (!canvasRef.current || !spriteSheet || !offscreenCtx) {
-            return;
-          }
-          const ctx = canvasRef.current.getContext("2d");
-          if (!ctx) {
-            return;
-          }
-          offscreenCtx.transferFromImageBitmap(e.data.canvasImage);
+          const ctx = canvasRef.current?.getContext("2d");
+          if (!ctx) return;
           ctx.clearRect(0, 0, width, height);
-          ctx.drawImage(offscreenCanvas, 0, 0);
+          ctx.drawImage(e.data.canvasImage, 0, 0);
+          e.data.canvasImage.close?.();
         }
       },
       [height, spriteSheet, width, workerId],
@@ -147,6 +142,7 @@ export const MetaspriteCanvas = memo(
       colorCorrection,
       spriteMode,
       defaultSpriteMode,
+      renderEpoch,
     ]);
 
     return (

@@ -33,6 +33,21 @@ class EventEmitter {
 
 export const eventBus = new EventEmitter();
 
+let latestDebuggerInitData: any = null;
+const gameDebuggerListeners = new Set<(event: unknown, data: any) => void>();
+
+// Dispatch packets directly to the active web player emulator.
+const sendToGameDebugger = (packet: any) => {
+  gameDebuggerListeners.forEach((listener) => {
+    try {
+      listener(undefined, packet);
+    } catch (e) {
+      console.error("Error delivering packet to game debugger:", e);
+    }
+  });
+  sendWs("debugger:data", packet);
+};
+
 let socket: WebSocket | null = null;
 let reconnectTimer: NodeJS.Timeout | null = null;
 
@@ -45,7 +60,15 @@ export const connectWebSocket = () => {
     return;
   }
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const wsUrl = `${protocol}//${window.location.host}/ws`;
+  let token: string | null = null;
+  try {
+    token = localStorage.getItem("gbs_token");
+  } catch (_e) {
+    // Ignore storage errors
+  }
+  const wsUrl = `${protocol}//${window.location.host}/ws${
+    token ? `?token=${encodeURIComponent(token)}` : ""
+  }`;
 
   socket = new WebSocket(wsUrl);
 
@@ -202,7 +225,11 @@ export const createWebRendererAPI = (): typeof RendererAPI => {
         return Promise.resolve();
       },
       openImageFile: (path: string) => {
-        window.open(path, "_blank");
+        const url =
+          path.startsWith("/") || path.startsWith("http")
+            ? path
+            : `/api/assets/project/${path}`;
+        window.open(url, "_blank");
         return Promise.resolve();
       },
       openModFile: (_path: string) => Promise.resolve(),
@@ -342,9 +369,15 @@ export const createWebRendererAPI = (): typeof RendererAPI => {
           body: JSON.stringify({ project: data, options }),
         });
         const result = await res.json();
+        if (result.debuggerInitData) {
+          latestDebuggerInitData = result.debuggerInitData;
+        }
         // If web build succeeded, emit open-play modal event
         if (result.status === "success" && options.buildType === "web") {
-          eventBus.emit("web:play", { url: "/api/preview/index.html" });
+          eventBus.emit("web:play", {
+            url: "/api/preview/index.html",
+            debug: Boolean(options.debugEnabled),
+          });
         }
         return result;
       },
@@ -403,10 +436,14 @@ export const createWebRendererAPI = (): typeof RendererAPI => {
       addFile: async () => {},
       loadProject: async () => {
         const urlParams = new URLSearchParams(window.location.search);
+        const queryId = urlParams.get("project") || urlParams.get("id");
         const queryPath = urlParams.get("path");
-        const url = queryPath
-          ? `/api/projects/load?path=${encodeURIComponent(queryPath)}`
-          : "/api/projects/load";
+        let url = "/api/projects/load";
+        if (queryId) {
+          url += `?project=${encodeURIComponent(queryId)}`;
+        } else if (queryPath) {
+          url += `?path=${encodeURIComponent(queryPath)}`;
+        }
         const res = await fetch(url);
         return res.ok ? res.json() : null;
       },
@@ -568,38 +605,57 @@ export const createWebRendererAPI = (): typeof RendererAPI => {
         clipboardBuffers.set(format, buffer);
       },
     },
+    _subscribeGameDebugger: (listener: (event: unknown, data: any) => void) => {
+      gameDebuggerListeners.add(listener);
+      return () => {
+        gameDebuggerListeners.delete(listener);
+      };
+    },
     debugger: {
       pause: async () => {
-        sendWs("debugger:pause");
+        sendToGameDebugger({ action: "pause" });
       },
       resume: async () => {
-        sendWs("debugger:resume");
+        sendToGameDebugger({ action: "resume" });
       },
       setPauseOnScriptChanged: async (enabled: any) => {
-        sendWs("debugger:pause-on-script", enabled);
+        sendToGameDebugger({ action: "pause-on-script", data: enabled });
       },
       setPauseOnWatchVariableChanged: async (enabled: any) => {
-        sendWs("debugger:pause-on-var", enabled);
+        sendToGameDebugger({ action: "pause-on-var", data: enabled });
       },
       setGlobal: async (symbol: any, value: any, index: any) => {
-        sendWs("debugger:set-global", { symbol, value, index });
+        sendToGameDebugger({
+          action: "set-global",
+          data: { symbol, value, index },
+        });
       },
       step: async () => {
-        sendWs("debugger:step");
+        sendToGameDebugger({ action: "step" });
       },
       stepFrame: async () => {
-        sendWs("debugger:step-frame");
+        sendToGameDebugger({ action: "step-frame" });
       },
       setBreakpoints: async (breakpoints: any) => {
-        sendWs("debugger:set-breakpoints", breakpoints);
+        sendToGameDebugger({ action: "set-breakpoints", data: breakpoints });
       },
       setWatchedVariableIds: async (ids: any) => {
-        sendWs("debugger:set-watched", ids);
+        sendToGameDebugger({ action: "set-watched", data: ids });
       },
       setBackgroundPreviewType: async (type: any) => {
-        sendWs("debugger:set-background-preview-type", type);
+        sendToGameDebugger({
+          action: "set-background-preview-type",
+          data: type,
+        });
       },
       sendToProjectWindow: async (data: any) => {
+        if (data?.action === "initialized" && latestDebuggerInitData) {
+          sendToGameDebugger({
+            action: "listener-ready",
+            data: latestDebuggerInitData,
+          });
+        }
+        eventBus.emit("debugger:data", data);
         sendWs("debugger:data-receive", data);
       },
     },

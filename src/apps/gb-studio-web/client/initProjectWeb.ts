@@ -22,36 +22,66 @@ import { isZoomSection } from "store/features/editor/editorHelpers";
 import trackerActions from "store/features/tracker/trackerActions";
 import { ConsoleLink } from "store/features/console/consoleState";
 import { actions as webTemplatesActions } from "store/features/webTemplates/webTemplatesState";
+import { checkAuthStatus } from "./auth";
+import { eventBus } from "./api";
 
 export const initProjectWeb = async () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  let projectPath = urlParams.get("path");
+  // Verify authentication status before attempting to load user workspace data.
+  const authStatus = await checkAuthStatus();
+  if (authStatus.setupRequired || !authStatus.authenticated) {
+    return;
+  }
 
-  if (!projectPath) {
+  const urlParams = new URLSearchParams(window.location.search);
+  let projectId = urlParams.get("project") || urlParams.get("id");
+  let legacyPath = urlParams.get("path");
+
+  if (!projectId && !legacyPath) {
     try {
       const res = await fetch("/api/projects");
       if (res.ok) {
         const data = await res.json();
-        projectPath = data.currentProject;
+        projectId = data.currentProjectId;
       }
     } catch (e) {
       console.error("Failed to query /api/projects:", e);
     }
   }
 
-  if (projectPath) {
+  if (projectId || legacyPath) {
+    let resolvedIdentifier = projectId || legacyPath;
     try {
-      await fetch("/api/projects/open", {
+      const openRes = await fetch("/api/projects/open", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectPath }),
+        body: JSON.stringify({
+          projectId,
+          projectPath: legacyPath,
+        }),
       });
+      if (openRes.ok) {
+        const openData = await openRes.json();
+        if (openData.projectId) {
+          resolvedIdentifier = openData.projectId;
+          // Sanitize legacy path query parameters into clean project GUIDs.
+          if (legacyPath && !projectId) {
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete("path");
+            newUrl.searchParams.set("project", openData.projectId);
+            window.history.replaceState({}, "", newUrl.toString());
+          }
+        }
+      }
     } catch (e) {
       console.warn("Failed to notify backend of open project:", e);
     }
-    store.dispatch(projectActions.openProject(projectPath));
+    store.dispatch(projectActions.openProject(resolvedIdentifier as string));
     store.dispatch(trackerActions.initViewFromSaved());
+    (window as any).__store = store;
     initKeyBindings();
+  } else {
+    // Open the project picker if no active project was selected.
+    eventBus.emit("web:project-picker");
   }
 
   window.addEventListener("error", (error) => {
@@ -155,6 +185,15 @@ export const initProjectWeb = async () => {
     }, 500),
   );
 
+  window.addEventListener("beforeunload", (e) => {
+    const state = store.getState();
+    const isModified = state.document.modified || state.tracker.modified;
+    if (isModified) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+  });
+
   window.addEventListener("keydown", (e) => {
     if (e.code === "KeyZ" && (e.ctrlKey || e.metaKey)) {
       if (e.shiftKey) {
@@ -163,6 +202,16 @@ export const initProjectWeb = async () => {
       } else {
         e.preventDefault();
         onUndo();
+      }
+    }
+    if ((e.code === "KeyS" || e.key === "s" || e.key === "S") && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+      const state = store.getState();
+      if (state.document.loaded && !state.document.saving) {
+        store.dispatch(projectActions.saveProject());
       }
     }
   });
@@ -245,7 +294,7 @@ export const initProjectWeb = async () => {
     store.dispatch(webTemplatesActions.setWebTemplates(templates));
   });
 
-  if (projectPath) {
+  if (projectId || legacyPath) {
     API.project
       .getWebTemplates()
       .then((templates) => {

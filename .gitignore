@@ -36,3 +36,40 @@ flamegraph.html
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Databases
+*.sqlite
+*.sqlite3
+*.db
+*.sqlite-wal
+*.sqlite-shm
+*.db-wal
+*.db-shm
+
+# User and project settings
+**/user_settings.gbsres
+
+# Backups and temporary files
+*.bak
+*.tmp
+*~
+*.swp
+*.swo
+**/_tmp/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Operating System Files
+Thumbs.db
+ehthumbs.db
+desktop.ini

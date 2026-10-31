@@ -2,8 +2,10 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { Button } from "ui/buttons/Button";
 import { Input } from "ui/form/Input";
-import { CloseIcon } from "ui/icons/Icons";
+import { CloseIcon, PersonIcon } from "ui/icons/Icons";
+import { getCurrentUser } from "../auth";
 import { eventBus } from "../api";
+import { useAppSelector } from "store/hooks";
 
 const ModalOverlay = styled.div`
   position: fixed;
@@ -119,9 +121,9 @@ const ProjectCard = styled.div<{ active?: boolean }>`
       : props.theme.colors.input.background};
   border: 1px solid
     ${(props) =>
-      props.active
-        ? props.theme.colors.highlight
-        : props.theme.colors.input.border};
+    props.active
+      ? props.theme.colors.highlight
+      : props.theme.colors.input.border};
   padding: 8px 12px;
   border-radius: ${(props) => props.theme.borderRadius || 4}px;
   display: flex;
@@ -133,9 +135,9 @@ const ProjectCard = styled.div<{ active?: boolean }>`
   &:hover {
     background: ${(props) => props.theme.colors.input.hoverBackground};
     border-color: ${(props) =>
-      props.active
-        ? props.theme.colors.highlight
-        : props.theme.colors.secondaryText};
+    props.active
+      ? props.theme.colors.highlight
+      : props.theme.colors.secondaryText};
   }
 `;
 
@@ -193,13 +195,17 @@ const StyledSelect = styled.select`
 export const ProjectPickerModal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [data, setData] = useState<{
-    currentProject?: string;
-    templates: { name: string; path: string }[];
-    userProjects?: { name: string; path: string }[];
+    currentProjectId?: string;
+    templates: { id: string; name: string }[];
+    userProjects?: { id: string; name: string }[];
   }>({ templates: [] });
   const [newProjectName, setNewProjectName] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("blank");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const currentUser = getCurrentUser();
+  const isProjectLoaded = useAppSelector((state) => state.document.loaded);
+  // Only allow closing the modal if a project is already loaded in the editor.
+  const hasOpenProject = Boolean(isProjectLoaded || (data.currentProjectId && data.currentProjectId.length > 0));
 
   useEffect(() => {
     const show = () => {
@@ -217,15 +223,15 @@ export const ProjectPickerModal: React.FC = () => {
     };
   }, []);
 
-  const openProject = async (path: string) => {
+  const openProject = async (id: string) => {
     setErrorMsg(null);
     const res = await fetch("/api/projects/open", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectPath: path }),
+      body: JSON.stringify({ projectId: id }),
     });
     if (res.ok) {
-      window.location.search = `?path=${encodeURIComponent(path)}`;
+      window.location.search = `?project=${encodeURIComponent(id)}`;
     } else {
       const err = await res
         .json()
@@ -251,7 +257,7 @@ export const ProjectPickerModal: React.FC = () => {
       });
       if (res.ok) {
         const result = await res.json();
-        window.location.search = `?path=${encodeURIComponent(result.projectPath)}`;
+        window.location.search = `?project=${encodeURIComponent(result.projectId)}`;
       } else {
         const err = await res
           .json()
@@ -266,13 +272,38 @@ export const ProjectPickerModal: React.FC = () => {
   if (!isOpen) return null;
 
   return (
-    <ModalOverlay onClick={() => setIsOpen(false)}>
+    <ModalOverlay
+      onClick={() => {
+        if (hasOpenProject) setIsOpen(false);
+      }}
+    >
       <ModalContainer onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
           <Title>GB Studio Projects</Title>
-          <HeaderCloseButton onClick={() => setIsOpen(false)} title="Close">
-            <CloseIcon />
-          </HeaderCloseButton>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {currentUser?.role === "admin" && (
+              <Button
+                small
+                onClick={() => {
+                  eventBus.emit("web:admin-panel");
+                  window.dispatchEvent(new CustomEvent("web:admin-panel"));
+                }}
+                title="Manage Users"
+                style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+              >
+                <PersonIcon />
+                <span>Manage Users</span>
+              </Button>
+            )}
+            {hasOpenProject && (
+              <HeaderCloseButton
+                onClick={() => setIsOpen(false)}
+                title="Close"
+              >
+                <CloseIcon />
+              </HeaderCloseButton>
+            )}
+          </div>
         </ModalHeader>
         <Body>
           <div>
@@ -281,16 +312,15 @@ export const ProjectPickerModal: React.FC = () => {
             </SectionHeader>
             <ProjectList>
               {data.templates.map((tpl) => {
-                const isActive = tpl.path === data.currentProject;
+                const isActive = tpl.id === data.currentProjectId;
                 return (
                   <ProjectCard
-                    key={tpl.path}
+                    key={tpl.id}
                     active={isActive}
-                    onClick={() => openProject(tpl.path)}
+                    onClick={() => openProject(tpl.id)}
                   >
                     <ProjectInfo>
                       <ProjectName active={isActive}>{tpl.name}</ProjectName>
-                      <ProjectPath>{tpl.path}</ProjectPath>
                     </ProjectInfo>
                     {isActive && <ActiveBadge>Active</ActiveBadge>}
                   </ProjectCard>
@@ -306,16 +336,15 @@ export const ProjectPickerModal: React.FC = () => {
               </SectionHeader>
               <ProjectList>
                 {data.userProjects.map((p) => {
-                  const isActive = p.path === data.currentProject;
+                  const isActive = p.id === data.currentProjectId;
                   return (
                     <ProjectCard
-                      key={p.path}
+                      key={p.id}
                       active={isActive}
-                      onClick={() => openProject(p.path)}
+                      onClick={() => openProject(p.id)}
                     >
                       <ProjectInfo>
                         <ProjectName active={isActive}>{p.name}</ProjectName>
-                        <ProjectPath>{p.path}</ProjectPath>
                       </ProjectInfo>
                       {isActive && <ActiveBadge>Active</ActiveBadge>}
                     </ProjectCard>

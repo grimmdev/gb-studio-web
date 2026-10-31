@@ -108,23 +108,34 @@ const StyledIframe = styled.iframe`
 
 export const WebPlayModal: React.FC = () => {
   const [playUrl, setPlayUrl] = useState<string | null>(null);
+  const [isDebug, setIsDebug] = useState(false);
   const [key, setKey] = useState(0);
 
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const unsub = eventBus.on("web:play", (_event: unknown, data: any) => {
       setPlayUrl(data?.url || "/api/preview/index.html");
+      setIsDebug(Boolean(data?.debug));
       setKey((k) => k + 1);
     });
     return unsub;
   }, []);
 
+  const handleClose = () => {
+    setPlayUrl(null);
+    eventBus.emit("debugger:disconnected");
+  };
+
   if (!playUrl) {
     return null;
   }
 
+  const iframeSrc = `${playUrl}?audio=true&debug=${
+    isDebug ? "true" : "false"
+  }&t=${key}`;
+
   return (
-    <ModalOverlay onClick={() => setPlayUrl(null)}>
+    <ModalOverlay onClick={handleClose}>
       <ModalContainer onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
           <Title>
@@ -134,10 +145,10 @@ export const WebPlayModal: React.FC = () => {
             <Button size="small" onClick={() => setKey((k) => k + 1)}>
               Restart
             </Button>
-            <Button size="small" onClick={() => window.open(playUrl, "_blank")}>
+            <Button size="small" onClick={() => window.open(iframeSrc, "_blank")}>
               Open in Tab
             </Button>
-            <HeaderCloseButton onClick={() => setPlayUrl(null)} title="Close">
+            <HeaderCloseButton onClick={handleClose} title="Close">
               <CloseIcon />
             </HeaderCloseButton>
           </HeaderControls>
@@ -145,7 +156,7 @@ export const WebPlayModal: React.FC = () => {
         <FrameContainer>
           <StyledIframe
             key={key}
-            src={`${playUrl}?audio=true&t=${key}`}
+            src={iframeSrc}
             allow="autoplay"
           />
         </FrameContainer>

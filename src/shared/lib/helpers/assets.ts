@@ -33,10 +33,14 @@ export const assetFilename = (
   return Path.join(projectRoot, assetPath(assetType, asset));
 };
 
-export const assetURL = (assetType: AssetType, asset: Asset) => {
+export const isWeb =
+  typeof window !== "undefined" &&
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const isWeb =
-    typeof window !== "undefined" && (window as any).API?.env === "web";
+  ((window as any).API?.env === "web" ||
+    (Boolean(window.location?.protocol?.startsWith("http")) &&
+      !navigator?.userAgent?.includes("Electron")));
+
+export const assetURL = (assetType: AssetType, asset: Asset) => {
   const base = isWeb ? "/api/assets/project" : "gbs://project";
   return `${base}/${assetPath(assetType, asset)}?_v=${asset._v}`;
 };
