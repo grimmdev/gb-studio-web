@@ -268,6 +268,12 @@ export const getProjectsByUserId = (userId: string): ProjectRecord[] => {
     .all(userId) as unknown as ProjectRecord[];
 };
 
+export const getAllProjects = (): ProjectRecord[] => {
+  return db
+    .prepare("SELECT * FROM projects ORDER BY updated_at DESC")
+    .all() as unknown as ProjectRecord[];
+};
+
 export const saveProjectRecord = (
   project: Omit<ProjectRecord, "created_at" | "updated_at"> & {
     created_at?: number;

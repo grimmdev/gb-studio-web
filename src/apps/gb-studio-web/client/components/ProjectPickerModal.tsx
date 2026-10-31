@@ -231,7 +231,8 @@ export const ProjectPickerModal: React.FC = () => {
       body: JSON.stringify({ projectId: id }),
     });
     if (res.ok) {
-      window.location.search = `?project=${encodeURIComponent(id)}`;
+      const data = await res.json().catch(() => ({}));
+      window.location.search = `?project=${encodeURIComponent(data.projectId || id)}`;
     } else {
       const err = await res
         .json()

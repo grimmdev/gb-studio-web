@@ -40,6 +40,7 @@ import {
   getProjectById,
   getProjectByPath,
   saveProjectRecord,
+  ProjectRecord,
 } from "./db";
 import crypto from "node:crypto";
 import { adminRouter } from "./routes/adminRoutes";
@@ -211,6 +212,39 @@ const findTemplateByPath = (targetPath: string) => {
   return undefined;
 };
 
+export const cloneTemplateForUser = async (
+  userId: string,
+  templateKey: string,
+  templateName: string,
+): Promise<ProjectRecord> => {
+  const userProjectsDir = getUserProjectsDir(userId);
+  await fs.ensureDir(userProjectsDir);
+
+  let projectName = templateName;
+  let counter = 1;
+  let targetFolder = Path.join(userProjectsDir, projectName);
+  while (await fs.pathExists(targetFolder)) {
+    counter++;
+    projectName = `${templateName} ${counter}`;
+    targetFolder = Path.join(userProjectsDir, projectName);
+  }
+
+  const projectPath = await createProject({
+    name: projectName,
+    template: templateKey,
+    path: userProjectsDir,
+  });
+
+  const record = saveProjectRecord({
+    id: crypto.randomUUID(),
+    user_id: userId,
+    name: projectName,
+    path: projectPath,
+  });
+
+  return record;
+};
+
 apiRouter.get("/projects", async (req: Request, res: Response) => {
   const userId = req.user ? req.user.id : "anonymous";
   const userProjectsDir = getUserProjectsDir(userId);
@@ -307,17 +341,21 @@ apiRouter.get("/projects", async (req: Request, res: Response) => {
 });
 
 apiRouter.post("/projects/open", async (req: Request, res: Response) => {
+  const userId = req.user ? req.user.id : "anonymous";
   const { projectId, projectPath } = req.body || {};
   let targetPath = projectPath;
   let targetId = projectId;
 
   if (targetId) {
     if (TEMPLATE_PROJECTS[targetId]) {
-      targetPath = Path.join(
-        projectTemplatesRoot,
-        TEMPLATE_PROJECTS[targetId].templateKey,
-        "project.gbsproj",
+      const tpl = TEMPLATE_PROJECTS[targetId];
+      const record = await cloneTemplateForUser(
+        userId,
+        tpl.templateKey,
+        tpl.name,
       );
+      targetId = record.id;
+      targetPath = record.path;
     } else {
       const record = getProjectById(targetId);
       if (record) {
@@ -327,13 +365,19 @@ apiRouter.post("/projects/open", async (req: Request, res: Response) => {
   } else if (targetPath) {
     const templateMatch = findTemplateByPath(targetPath);
     if (templateMatch) {
-      targetId = templateMatch.id;
+      const record = await cloneTemplateForUser(
+        userId,
+        templateMatch.templateKey,
+        templateMatch.name,
+      );
+      targetId = record.id;
+      targetPath = record.path;
     } else {
       let record = getProjectByPath(targetPath);
       if (!record) {
         record = saveProjectRecord({
           id: crypto.randomUUID(),
-          user_id: req.user ? req.user.id : "anonymous",
+          user_id: userId,
           name: Path.basename(Path.dirname(targetPath)),
           path: targetPath,
         });
@@ -347,7 +391,6 @@ apiRouter.post("/projects/open", async (req: Request, res: Response) => {
     return;
   }
 
-  const userId = req.user ? req.user.id : "anonymous";
   if (!isProjectPathAllowed(userId, targetPath, req.user?.role)) {
     res.status(403).json({
       error: "Access denied: Project is outside your user workspace.",
@@ -377,11 +420,13 @@ apiRouter.get("/projects/load", async (req: Request, res: Response) => {
   let targetPath = queryPath;
   if (queryId) {
     if (TEMPLATE_PROJECTS[queryId]) {
-      targetPath = Path.join(
-        projectTemplatesRoot,
-        TEMPLATE_PROJECTS[queryId].templateKey,
-        "project.gbsproj",
+      const tpl = TEMPLATE_PROJECTS[queryId];
+      const record = await cloneTemplateForUser(
+        userId,
+        tpl.templateKey,
+        tpl.name,
       );
+      targetPath = record.path;
     } else {
       const record = getProjectById(queryId);
       if (record) {
@@ -487,6 +532,14 @@ apiRouter.post("/projects/save", async (req: Request, res: Response) => {
   const userId = req.user ? req.user.id : "anonymous";
   if (!state.projectPath) {
     res.status(400).json({ error: "No open project" });
+    return;
+  }
+  const resolved = Path.resolve(state.projectPath);
+  if (resolved.startsWith(Path.resolve(projectTemplatesRoot))) {
+    res.status(403).json({
+      error:
+        "Cannot save changes to a read-only template in appData. Please clone or create a user project.",
+    });
     return;
   }
   try {
@@ -771,6 +824,14 @@ apiRouter.post("/tracker/save", async (req: Request, res: Response) => {
   try {
     const { song } = req.body || {};
     const projectRoot = getRequestProjectState(req).projectRoot;
+    if (
+      Path.resolve(projectRoot).startsWith(Path.resolve(projectTemplatesRoot))
+    ) {
+      res.status(403).json({
+        error: "Cannot save music to a read-only template in appData.",
+      });
+      return;
+    }
     const filename = Path.join(projectRoot, song.filename);
     guardAssetWithinProject(filename, projectRoot);
     const data = saveUGESong(song);

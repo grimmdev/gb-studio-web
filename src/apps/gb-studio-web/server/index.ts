@@ -1,6 +1,8 @@
 import http from "http";
 import Path from "path";
 import fs from "fs-extra";
+import os from "os";
+import crypto from "node:crypto";
 import express from "express";
 import { apiRouter } from "./routes";
 import { authMiddleware } from "./auth";
@@ -8,6 +10,8 @@ import { initWebSocketServer } from "./ws";
 import { setOpenProject } from "./state";
 import { startWatchingProject } from "./watcher";
 import { projectTemplatesRoot } from "consts";
+import createProject from "lib/project/createProject";
+import { getAllProjects, saveProjectRecord } from "./db";
 import pkg from "../../../../package.json";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,16 +25,61 @@ const WEB_DIST = fs.existsSync(Path.resolve(__dirname, "index.html"))
   ? __dirname
   : Path.resolve(__dirname, "../../../../out/web");
 
-// Default initial project for development/demo (e.g. gbhtml sample or env)
-const defaultProject =
-  process.env.DEFAULT_PROJECT ||
-  Path.join(projectTemplatesRoot, "gbhtml", "project.gbsproj");
+const initActiveProject = async () => {
+  if (process.env.DEFAULT_PROJECT) {
+    if (fs.existsSync(process.env.DEFAULT_PROJECT)) {
+      console.log(`Setting default active project: ${process.env.DEFAULT_PROJECT}`);
+      setOpenProject(process.env.DEFAULT_PROJECT);
+      startWatchingProject(process.env.DEFAULT_PROJECT);
+    }
+    return;
+  }
+  const existingProjects = getAllProjects();
+  const validProject = existingProjects.find((p) => {
+    try {
+      const resolved = Path.resolve(p.path);
+      if (resolved.startsWith(Path.resolve(projectTemplatesRoot))) {
+        return false;
+      }
+      return fs.existsSync(resolved);
+    } catch {
+      return false;
+    }
+  });
 
-if (fs.existsSync(defaultProject)) {
-  console.log(`Setting default active project: ${defaultProject}`);
-  setOpenProject(defaultProject);
-  startWatchingProject(defaultProject);
-}
+  if (validProject) {
+    console.log(`Setting active project from database: ${validProject.path}`);
+    setOpenProject(validProject.path);
+    startWatchingProject(validProject.path);
+  } else {
+    try {
+      const baseDir =
+        process.env.PROJECTS_DIR || Path.join(os.homedir(), "GBStudioProjects");
+      await fs.ensureDir(baseDir);
+      const sampleDir = Path.join(baseDir, "GB HTML Sample");
+      let projFile = Path.join(sampleDir, "project.gbsproj");
+      if (!fs.existsSync(projFile)) {
+        projFile = await createProject({
+          name: "GB HTML Sample",
+          template: "gbhtml",
+          path: baseDir,
+        });
+      }
+      saveProjectRecord({
+        id: crypto.randomUUID(),
+        user_id: "anonymous",
+        name: "GB HTML Sample",
+        path: projFile,
+      });
+      setOpenProject(projFile);
+      startWatchingProject(projFile);
+      console.log(`Initialized user sample project: ${projFile}`);
+    } catch (e) {
+      console.warn("Could not initialize default sample project:", e);
+    }
+  }
+};
+initActiveProject();
 
 const app = express();
 
