@@ -173,4 +173,3 @@ adminRouter.post("/settings", (req: Request, res: Response) => {
   }
   res.json({ success: true });
 });
-

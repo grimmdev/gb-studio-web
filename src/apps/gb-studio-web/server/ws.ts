@@ -113,11 +113,7 @@ export const broadcast = (channel: string, ...args: unknown[]) => {
   }
 };
 
-const handleClientMessage = (
-  ws: WebSocket,
-  userId: string,
-  msg: WsMessage,
-) => {
+const handleClientMessage = (ws: WebSocket, userId: string, msg: WsMessage) => {
   // Route bidirectional debug and MIDI events strictly within the same user session.
   if (msg.channel.startsWith("debugger:") || msg.channel.startsWith("music:")) {
     const sockets = userSockets.get(userId);

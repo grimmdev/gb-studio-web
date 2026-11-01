@@ -204,7 +204,10 @@ export const initProjectWeb = async () => {
         onUndo();
       }
     }
-    if ((e.code === "KeyS" || e.key === "s" || e.key === "S") && (e.ctrlKey || e.metaKey)) {
+    if (
+      (e.code === "KeyS" || e.key === "s" || e.key === "S") &&
+      (e.ctrlKey || e.metaKey)
+    ) {
       e.preventDefault();
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();

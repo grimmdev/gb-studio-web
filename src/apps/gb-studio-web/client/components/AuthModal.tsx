@@ -2,12 +2,7 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { Button } from "ui/buttons/Button";
 import { Input } from "ui/form/Input";
-import {
-  PersonIcon,
-  LockIcon,
-  ShieldIcon,
-  CheckIcon,
-} from "ui/icons/Icons";
+import { PersonIcon, LockIcon, ShieldIcon, CheckIcon } from "ui/icons/Icons";
 import { eventBus } from "../api";
 import { setupAdministrator, login, checkAuthStatus } from "../auth";
 
@@ -139,11 +134,14 @@ export const AuthModal: React.FC = () => {
     });
 
     // Listen for explicit auth modal triggers.
-    const unsub = eventBus.on("web:auth:show", (targetMode?: "setup" | "login") => {
-      setMode(targetMode || "login");
-      setErrorMsg(null);
-      setIsOpen(true);
-    });
+    const unsub = eventBus.on(
+      "web:auth:show",
+      (targetMode?: "setup" | "login") => {
+        setMode(targetMode || "login");
+        setErrorMsg(null);
+        setIsOpen(true);
+      },
+    );
 
     return () => {
       unsub();

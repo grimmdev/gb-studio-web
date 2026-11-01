@@ -41,58 +41,64 @@ workerCtx.onmessage = async (evt) => {
   let tilesImg: ImageBitmap | undefined;
 
   try {
-  if (cache[src]) {
-    // Using Cached Data
-    canvas = cache[src].canvas;
-    ctx = cache[src].ctx;
-    img = cache[src].img;
-  } else {
-    // Fetch New Data
-    const imgblob = await fetch(src, { credentials: "include" }).then((r) => r.blob());
-    img = await createImageBitmap(imgblob);
-
-    canvas = new OffscreenCanvas(img.width, img.height);
-
-    const tmpCtx = canvas.getContext("2d", { willReadFrequently: true });
-    if (!tmpCtx) {
-      return;
-    }
-    ctx = tmpCtx;
-
-    cache[src] = {
-      canvas,
-      ctx,
-      img,
-    };
-  }
-
-  // If DMG tiles override provided, load second image
-  if (tilesSrc) {
-    if (cache[tilesSrc]) {
+    if (cache[src]) {
       // Using Cached Data
-      tilesCanvas = cache[tilesSrc].canvas;
-      tilesCtx = cache[tilesSrc].ctx;
-      tilesImg = cache[tilesSrc].img;
+      canvas = cache[src].canvas;
+      ctx = cache[src].ctx;
+      img = cache[src].img;
     } else {
       // Fetch New Data
-      const imgblob = await fetch(tilesSrc, { credentials: "include" }).then((r) => r.blob());
-      tilesImg = await createImageBitmap(imgblob);
+      const imgblob = await fetch(src, { credentials: "include" }).then((r) =>
+        r.blob(),
+      );
+      img = await createImageBitmap(imgblob);
 
-      tilesCanvas = new OffscreenCanvas(img.width, img.height);
+      canvas = new OffscreenCanvas(img.width, img.height);
 
-      const tmpCtx = tilesCanvas.getContext("2d", { willReadFrequently: true });
+      const tmpCtx = canvas.getContext("2d", { willReadFrequently: true });
       if (!tmpCtx) {
         return;
       }
-      tilesCtx = tmpCtx;
+      ctx = tmpCtx;
 
-      cache[tilesSrc] = {
-        canvas: tilesCanvas,
-        ctx: tilesCtx,
-        img: tilesImg,
+      cache[src] = {
+        canvas,
+        ctx,
+        img,
       };
     }
-  }
+
+    // If DMG tiles override provided, load second image
+    if (tilesSrc) {
+      if (cache[tilesSrc]) {
+        // Using Cached Data
+        tilesCanvas = cache[tilesSrc].canvas;
+        tilesCtx = cache[tilesSrc].ctx;
+        tilesImg = cache[tilesSrc].img;
+      } else {
+        // Fetch New Data
+        const imgblob = await fetch(tilesSrc, { credentials: "include" }).then(
+          (r) => r.blob(),
+        );
+        tilesImg = await createImageBitmap(imgblob);
+
+        tilesCanvas = new OffscreenCanvas(img.width, img.height);
+
+        const tmpCtx = tilesCanvas.getContext("2d", {
+          willReadFrequently: true,
+        });
+        if (!tmpCtx) {
+          return;
+        }
+        tilesCtx = tmpCtx;
+
+        cache[tilesSrc] = {
+          canvas: tilesCanvas,
+          ctx: tilesCtx,
+          img: tilesImg,
+        };
+      }
+    }
   } catch (err) {
     // Clear cached entries if loading failed so retries can succeed.
     delete cache[src];

@@ -101,7 +101,8 @@ const ImageViewer = ({ backgroundId }: ImageViewerProps) => {
     setPalettes(
       Array.from(Array(8).keys()).map((paletteIndex) => {
         const paletteId =
-          scene?.paletteIds?.[paletteIndex] || defaultPaletteIds?.[paletteIndex];
+          scene?.paletteIds?.[paletteIndex] ||
+          defaultPaletteIds?.[paletteIndex];
         return palettesLookup[paletteId] || (DMG_PALETTE as Palette);
       }),
     );

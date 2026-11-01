@@ -272,7 +272,10 @@ export const AdminModal: React.FC = () => {
 
   const fetchUsers = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/users", { headers: getAdminHeaders(), credentials: "include" });
+      const res = await fetch("/api/admin/users", {
+        headers: getAdminHeaders(),
+        credentials: "include",
+      });
       if (res.ok) {
         const data = await res.json();
         setUsers(data.users || []);
@@ -334,7 +337,9 @@ export const AdminModal: React.FC = () => {
   };
 
   const handleDeleteUser = async (userId: string, username: string) => {
-    if (!window.confirm(`Delete account "${username}" and revoke project access?`)) {
+    if (
+      !window.confirm(`Delete account "${username}" and revoke project access?`)
+    ) {
       return;
     }
     try {
@@ -397,7 +402,11 @@ export const AdminModal: React.FC = () => {
             <Button
               small
               onClick={() => setShowCreate(!showCreate)}
-              style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
             >
               <PlusIcon />
               <span>{showCreate ? "Cancel" : "Add User"}</span>
@@ -411,7 +420,13 @@ export const AdminModal: React.FC = () => {
           {showCreate && (
             <CreateUserCard>
               <form onSubmit={handleCreateUser}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                  }}
+                >
                   <FormRow>
                     <Input
                       placeholder="Username"
@@ -461,7 +476,8 @@ export const AdminModal: React.FC = () => {
                     </RoleBadge>
                   </UserNameRow>
                   <UserSub>
-                    {u.projectCount} {u.projectCount === 1 ? "project" : "projects"} · Created{" "}
+                    {u.projectCount}{" "}
+                    {u.projectCount === 1 ? "project" : "projects"} · Created{" "}
                     {new Date(u.created_at).toLocaleDateString()}
                   </UserSub>
                 </UserMeta>
@@ -492,4 +508,3 @@ export const AdminModal: React.FC = () => {
     </ModalOverlay>
   );
 };
-

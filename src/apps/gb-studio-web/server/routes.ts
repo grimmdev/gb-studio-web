@@ -111,7 +111,8 @@ apiRouter.get("/preview/*", async (req: Request, res: Response) => {
 
   if (relPath === "index.html" || relPath === "") {
     try {
-      const htmlFile = relPath === "" ? Path.join(tmpBuildDir, "index.html") : fullPath;
+      const htmlFile =
+        relPath === "" ? Path.join(tmpBuildDir, "index.html") : fullPath;
       if (await fs.pathExists(htmlFile)) {
         let content = await fs.readFile(htmlFile, "utf8");
         // Inject parent window API bridge so the emulator debugger works seamlessly in web.
@@ -151,7 +152,8 @@ if (!window.API) {
 
 // --- Project Endpoints ---
 const getUserProjectsDir = (userId: string = "anonymous") => {
-  const base = process.env.PROJECTS_DIR || Path.join(os.homedir(), "GBStudioProjects");
+  const base =
+    process.env.PROJECTS_DIR || Path.join(os.homedir(), "GBStudioProjects");
   if (userId === "anonymous") return base;
   return Path.join(base, "users", userId);
 };
@@ -691,13 +693,15 @@ apiRouter.post("/projects/build", async (req: Request, res: Response) => {
         debuggerInitData = {
           memoryMap,
           globalVariables,
-          pauseOnScriptChanged: bodyProject.settings?.debuggerPauseOnScriptChanged,
+          pauseOnScriptChanged:
+            bodyProject.settings?.debuggerPauseOnScriptChanged,
           pauseOnWatchedVariableChanged:
             bodyProject.settings?.debuggerPauseOnWatchedVariableChanged,
           breakpoints: (bodyProject.settings?.debuggerBreakpoints || []).map(
             (breakpoint: any) => breakpoint.scriptEventId,
           ),
-          watchedVariables: bodyProject.settings?.debuggerWatchedVariables || [],
+          watchedVariables:
+            bodyProject.settings?.debuggerWatchedVariables || [],
           variableMap: keyBy(
             Object.values(buildResult.compiledData.variableMap),
             "id",
@@ -724,7 +728,11 @@ apiRouter.post("/projects/build", async (req: Request, res: Response) => {
     });
   } catch (err: unknown) {
     console.error("Build project error:", err);
-    emitToUser(userId, "build:error", err instanceof Error ? err.message : String(err));
+    emitToUser(
+      userId,
+      "build:error",
+      err instanceof Error ? err.message : String(err),
+    );
     res
       .status(500)
       .json({ error: err instanceof Error ? err.message : String(err) });

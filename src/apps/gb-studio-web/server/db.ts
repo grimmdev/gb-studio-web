@@ -95,8 +95,7 @@ export const getAllUsers = (): SafeUser[] => {
 
 export const getUserById = (id: string): UserRecord | undefined => {
   return db.prepare("SELECT * FROM users WHERE id = ?").get(id) as
-    | UserRecord
-    | undefined;
+    UserRecord | undefined;
 };
 
 export const getUserByUsername = (username: string): UserRecord | undefined => {
@@ -187,16 +186,16 @@ export const getSessionWithUser = (
     )
     .get(token, now) as
     | {
-      token: string;
-      user_id: string;
-      session_created_at: number;
-      expires_at: number;
-      id: string;
-      username: string;
-      role: "admin" | "user";
-      created_at: number;
-      updated_at: number;
-    }
+        token: string;
+        user_id: string;
+        session_created_at: number;
+        expires_at: number;
+        id: string;
+        username: string;
+        role: "admin" | "user";
+        created_at: number;
+        updated_at: number;
+      }
     | undefined;
 
   if (!row) return null;
@@ -251,8 +250,7 @@ export interface ProjectRecord {
 
 export const getProjectById = (id: string): ProjectRecord | undefined => {
   return db.prepare("SELECT * FROM projects WHERE id = ?").get(id) as
-    | ProjectRecord
-    | undefined;
+    ProjectRecord | undefined;
 };
 
 export const getProjectByPath = (path: string): ProjectRecord | undefined => {
@@ -264,7 +262,9 @@ export const getProjectByPath = (path: string): ProjectRecord | undefined => {
 
 export const getProjectsByUserId = (userId: string): ProjectRecord[] => {
   return db
-    .prepare("SELECT * FROM projects WHERE user_id = ? ORDER BY updated_at DESC")
+    .prepare(
+      "SELECT * FROM projects WHERE user_id = ? ORDER BY updated_at DESC",
+    )
     .all(userId) as unknown as ProjectRecord[];
 };
 
@@ -287,7 +287,12 @@ export const saveProjectRecord = (
     db.prepare(
       "UPDATE projects SET name = ?, path = ?, updated_at = ? WHERE id = ?",
     ).run(project.name, resolvedPath, now, existing.id);
-    return { ...existing, name: project.name, path: resolvedPath, updated_at: now };
+    return {
+      ...existing,
+      name: project.name,
+      path: resolvedPath,
+      updated_at: now,
+    };
   } else {
     const record: ProjectRecord = {
       id: project.id,

@@ -94,9 +94,12 @@ export const UserMenu: React.FC = () => {
 
   useEffect(() => {
     // Listen for session changes to update header state.
-    const unsub = eventBus.on("web:auth:changed", (updatedUser: CurrentUser | null) => {
-      setUser(updatedUser);
-    });
+    const unsub = eventBus.on(
+      "web:auth:changed",
+      (updatedUser: CurrentUser | null) => {
+        setUser(updatedUser);
+      },
+    );
 
     return () => {
       unsub();
@@ -144,4 +147,3 @@ export const UserMenu: React.FC = () => {
     </Container>
   );
 };
-

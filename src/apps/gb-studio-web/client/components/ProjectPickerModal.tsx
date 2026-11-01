@@ -121,9 +121,9 @@ const ProjectCard = styled.div<{ active?: boolean }>`
       : props.theme.colors.input.background};
   border: 1px solid
     ${(props) =>
-    props.active
-      ? props.theme.colors.highlight
-      : props.theme.colors.input.border};
+      props.active
+        ? props.theme.colors.highlight
+        : props.theme.colors.input.border};
   padding: 8px 12px;
   border-radius: ${(props) => props.theme.borderRadius || 4}px;
   display: flex;
@@ -135,9 +135,9 @@ const ProjectCard = styled.div<{ active?: boolean }>`
   &:hover {
     background: ${(props) => props.theme.colors.input.hoverBackground};
     border-color: ${(props) =>
-    props.active
-      ? props.theme.colors.highlight
-      : props.theme.colors.secondaryText};
+      props.active
+        ? props.theme.colors.highlight
+        : props.theme.colors.secondaryText};
   }
 `;
 
@@ -205,7 +205,10 @@ export const ProjectPickerModal: React.FC = () => {
   const currentUser = getCurrentUser();
   const isProjectLoaded = useAppSelector((state) => state.document.loaded);
   // Only allow closing the modal if a project is already loaded in the editor.
-  const hasOpenProject = Boolean(isProjectLoaded || (data.currentProjectId && data.currentProjectId.length > 0));
+  const hasOpenProject = Boolean(
+    isProjectLoaded ||
+    (data.currentProjectId && data.currentProjectId.length > 0),
+  );
 
   useEffect(() => {
     const show = () => {
@@ -290,17 +293,18 @@ export const ProjectPickerModal: React.FC = () => {
                   window.dispatchEvent(new CustomEvent("web:admin-panel"));
                 }}
                 title="Manage Users"
-                style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
               >
                 <PersonIcon />
                 <span>Manage Users</span>
               </Button>
             )}
             {hasOpenProject && (
-              <HeaderCloseButton
-                onClick={() => setIsOpen(false)}
-                title="Close"
-              >
+              <HeaderCloseButton onClick={() => setIsOpen(false)} title="Close">
                 <CloseIcon />
               </HeaderCloseButton>
             )}

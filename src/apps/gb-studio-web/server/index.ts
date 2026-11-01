@@ -28,7 +28,9 @@ const WEB_DIST = fs.existsSync(Path.resolve(__dirname, "index.html"))
 const initActiveProject = async () => {
   if (process.env.DEFAULT_PROJECT) {
     if (fs.existsSync(process.env.DEFAULT_PROJECT)) {
-      console.log(`Setting default active project: ${process.env.DEFAULT_PROJECT}`);
+      console.log(
+        `Setting default active project: ${process.env.DEFAULT_PROJECT}`,
+      );
       setOpenProject(process.env.DEFAULT_PROJECT);
       startWatchingProject(process.env.DEFAULT_PROJECT);
     }

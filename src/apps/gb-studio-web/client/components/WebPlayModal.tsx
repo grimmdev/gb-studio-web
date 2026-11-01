@@ -145,7 +145,10 @@ export const WebPlayModal: React.FC = () => {
             <Button size="small" onClick={() => setKey((k) => k + 1)}>
               Restart
             </Button>
-            <Button size="small" onClick={() => window.open(iframeSrc, "_blank")}>
+            <Button
+              size="small"
+              onClick={() => window.open(iframeSrc, "_blank")}
+            >
               Open in Tab
             </Button>
             <HeaderCloseButton onClick={handleClose} title="Close">
@@ -154,11 +157,7 @@ export const WebPlayModal: React.FC = () => {
           </HeaderControls>
         </ModalHeader>
         <FrameContainer>
-          <StyledIframe
-            key={key}
-            src={iframeSrc}
-            allow="autoplay"
-          />
+          <StyledIframe key={key} src={iframeSrc} allow="autoplay" />
         </FrameContainer>
       </ModalContainer>
     </ModalOverlay>

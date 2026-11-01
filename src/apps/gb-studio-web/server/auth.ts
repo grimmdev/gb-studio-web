@@ -15,7 +15,9 @@ const SESSION_COOKIE_NAME = "gbs_session";
 const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 // Hash passwords using scrypt with a unique per-user salt.
-export const hashPassword = (password: string): { hash: string; salt: string } => {
+export const hashPassword = (
+  password: string,
+): { hash: string; salt: string } => {
   const salt = crypto.randomBytes(16).toString("hex");
   const hash = crypto.scryptSync(password, salt, 64).toString("hex");
   return { hash, salt };
@@ -117,4 +119,3 @@ export const requireAdmin = (
   }
   next();
 };
-

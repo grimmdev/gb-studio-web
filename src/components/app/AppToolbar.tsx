@@ -318,25 +318,17 @@ const AppToolbar: FC = () => {
         )}
         {API.platform === "web" && (
           <>
-            <Button
-              title="Manage Users"
-              onClick={onOpenAdmin}
-            >
+            <Button title="Manage Users" onClick={onOpenAdmin}>
               <PersonIcon />
             </Button>
-            <Button
-              title={l10n("NAV_LOG_OUT")}
-              onClick={onLogout}
-            >
+            <Button title={l10n("NAV_LOG_OUT")} onClick={onLogout}>
               <LogoutIcon />
             </Button>
           </>
         )}
         <Button
           title={
-            saving
-              ? l10n("TOOLBAR_SAVING")
-              : `${l10n("MENU_SAVE")} (Ctrl+S)`
+            saving ? l10n("TOOLBAR_SAVING") : `${l10n("MENU_SAVE")} (Ctrl+S)`
           }
           variant={hasUnsavedChanges ? "primary" : "normal"}
           disabled={saving || !hasUnsavedChanges}
