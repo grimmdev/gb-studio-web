@@ -1,4 +1,4 @@
-# GB Studio Web
+<img src="assets/gb-studios-web-banner.jpg"/>
 
 [![Github Actions Status](https://github.com/grimmdev/gb-studio-web/actions/workflows/main.yml/badge.svg?branch=develop)](https://github.com/grimmdev/gb-studio-web/actions?query=branch%3Adevelop) [![Storybook](https://img.shields.io/badge/Storybook-FF4785?logo=storybook&logoColor=white)](https://grimmdev.github.io/gb-studio-web/storybook) [![Code Coverage](https://img.shields.io/badge/Coverage-blue?logo=jest&logoColor=white)](https://grimmdev.github.io/gb-studio-web/coverage)
 
